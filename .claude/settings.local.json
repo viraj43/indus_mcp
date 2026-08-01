@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('./node_modules/fastmcp/dist/index.js'\\)\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(node -e ' *)",
+      "Bash(npm view *)",
+      "Bash(npm install *)",
+      "Bash(file reports/*.pdf)",
+      "Bash(rm -f server.log)",
+      "Bash(cd \"E:\\\\Indus_dev\\\\indus_mcp\" && rm -f reports/*.pdf)"
+    ]
+  }
+}

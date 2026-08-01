@@ -1,0 +1,53 @@
+import type { FastMCP } from "fastmcp";
+import { registerSearchCompanyTool } from "./company/searchCompany.js";
+import { registerCompanyProfileTool } from "./company/companyProfile.js";
+import { registerCompanyOverviewTool } from "./company/companyOverview.js";
+import { registerFinancialStatementsTool } from "./financial/financialStatements.js";
+import { registerRatioAnalysisTool } from "./financial/ratioAnalysis.js";
+import { registerFundingHistoryTool } from "./funding/fundingHistory.js";
+import { registerDiscoverCompetitorsTool } from "./competitor/discoverCompetitors.js";
+import { registerIndustryOverviewTool } from "./industry/industryOverview.js";
+import { registerMarketSizeTool } from "./industry/marketSize.js";
+import { registerLatestNewsTool } from "./news/latestNews.js";
+import { registerNegativeNewsTool } from "./news/negativeNews.js";
+import { registerGenerateReportTool } from "./report/generateReport.js";
+import { registerGenerateMarkdownTool } from "./export/generateMarkdown.js";
+import { registerGeneratePdfTool } from "./export/generatePdf.js";
+import { registerHealthCheckTool } from "./health/healthCheck.js";
+
+/** Central tool registry. Every MCP tool the server exposes is wired up
+ * here so src/index.ts stays a thin bootstrap file. */
+export function registerAllTools(server: FastMCP): void {
+  // Company Intelligence
+  registerSearchCompanyTool(server);
+  registerCompanyProfileTool(server);
+  registerCompanyOverviewTool(server);
+
+  // Financial Intelligence
+  registerFinancialStatementsTool(server);
+  registerRatioAnalysisTool(server);
+
+  // Funding Intelligence
+  registerFundingHistoryTool(server);
+
+  // Competitor Intelligence
+  registerDiscoverCompetitorsTool(server);
+
+  // Industry Intelligence
+  registerIndustryOverviewTool(server);
+  registerMarketSizeTool(server);
+
+  // News Intelligence
+  registerLatestNewsTool(server);
+  registerNegativeNewsTool(server);
+
+  // Report Generation
+  registerGenerateReportTool(server);
+
+  // PDF & Export
+  registerGenerateMarkdownTool(server);
+  registerGeneratePdfTool(server);
+
+  // Ops
+  registerHealthCheckTool(server);
+}

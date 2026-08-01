@@ -1,16 +1,10 @@
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { FastMCP } from "fastmcp";
 import { toHtml, summarizeReport } from "../../core/reports/reportEngine.js";
-import { renderHtmlToPdf } from "../../core/pdf/pdfEngine.js";
 import { ReportInputSchema } from "../../types/schemas.js";
-import { slugify } from "../../core/renderers/shared.js";
+import { ensurePdfDownloadRoute, renderAndSavePdf } from "../shared/pdfDelivery.js";
 import { makeEnvelope, errorResponse } from "../../types/common.js";
-import { env } from "../../config/env.js";
-import { childLogger } from "../../logger.js";
 import type { ToolMeta } from "../../types/toolMeta.js";
-
-const log = childLogger("generatePdf");
 
 export const generatePdfMeta: ToolMeta = {
   name: "generate_pdf",
@@ -23,48 +17,8 @@ export const generatePdfMeta: ToolMeta = {
   estimatedRuntimeMs: 3000,
 };
 
-const REPORTS_DIR = path.resolve(process.cwd(), "reports");
-const SAFE_FILENAME = /^[a-z0-9-]+\.pdf$/;
-
-let downloadRouteRegistered = false;
-
-/** Serves generated PDFs over HTTP so a *remote* MCP client (e.g. Claude.ai
- * connecting to the Railway deployment) has a real URL to fetch — a
- * server-local file path is meaningless to a client that isn't on the same
- * filesystem. This is a public route (no auth) since filenames are
- * effectively unguessable (slug + timestamp) and the content isn't
- * sensitive enough to justify fighting the OAuth session for a one-off
- * download link. Registered once, the first time generate_pdf is used. */
-function ensureDownloadRoute(server: FastMCP): void {
-  if (downloadRouteRegistered) return;
-  downloadRouteRegistered = true;
-
-  try {
-    const app = server.getApp();
-    app.get("/reports/:filename", async (c) => {
-      const filename = c.req.param("filename");
-      if (!SAFE_FILENAME.test(filename)) return c.body(null, 400);
-
-      const filePath = path.join(REPORTS_DIR, filename);
-      if (path.dirname(filePath) !== REPORTS_DIR) return c.body(null, 400);
-
-      try {
-        const buffer = await fs.readFile(filePath);
-        return c.body(buffer, 200, {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `inline; filename="${filename}"`,
-        });
-      } catch {
-        return c.body(null, 404);
-      }
-    });
-  } catch (err) {
-    log.debug({ err }, "Could not register /reports download route (non-httpStream transport?)");
-  }
-}
-
 export function registerGeneratePdfTool(server: FastMCP): void {
-  ensureDownloadRoute(server);
+  ensurePdfDownloadRoute(server);
 
   server.addTool({
     name: "generate_pdf",
@@ -74,23 +28,13 @@ export function registerGeneratePdfTool(server: FastMCP): void {
     annotations: { title: "Generate PDF", readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     execute: async (args) => {
       try {
-        await fs.mkdir(REPORTS_DIR, { recursive: true });
-
         const html = toHtml(args);
-        const pdfBuffer = await renderHtmlToPdf(html, {
-          headerTitle: args.companyName ?? args.brandName ?? "INDUSS Research Intelligence",
-        });
-
-        const filename = `${slugify(args.title)}-${Date.now()}.pdf`;
-        const filePath = path.join(REPORTS_DIR, filename);
-        await fs.writeFile(filePath, pdfBuffer);
-
+        const pdf = await renderAndSavePdf(html, args.title, args.companyName ?? args.brandName ?? "INDUSS Research Intelligence");
         const { citations, confidence } = summarizeReport(args);
-        const downloadUrl = env.MCP_BASE_URL ? `${env.MCP_BASE_URL.replace(/\/$/, "")}/reports/${filename}` : undefined;
 
         const envelope = makeEnvelope({
           success: true,
-          data: { filePath, sizeBytes: pdfBuffer.length, downloadUrl },
+          data: { filePath: pdf.filePath, sizeBytes: pdf.sizeBytes, downloadUrl: pdf.downloadUrl },
           citations,
           confidence,
           metadata: { pages: "computed_at_render_time" },
@@ -99,14 +43,7 @@ export function registerGeneratePdfTool(server: FastMCP): void {
         return {
           content: [
             { type: "text", text: JSON.stringify(envelope) },
-            {
-              type: "resource",
-              resource: {
-                uri: `induss-report:///${filename}`,
-                mimeType: "application/pdf",
-                blob: pdfBuffer.toString("base64"),
-              },
-            },
+            { type: "resource", resource: { uri: `induss-report:///${path.basename(pdf.filePath)}`, mimeType: "application/pdf", blob: pdf.base64 } },
           ],
         };
       } catch (err) {

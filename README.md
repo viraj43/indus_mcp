@@ -129,7 +129,7 @@ npm test          # vitest — financial engine, citation engine, source priorit
 npm run typecheck
 ```
 
-## Tools implemented in this slice (18)
+## Tools implemented in this slice (19)
 
 | Category | Tools |
 |---|---|
@@ -141,7 +141,7 @@ npm run typecheck
 | News Intelligence | `latest_news`, `negative_news` |
 | Litigation & Compliance | `litigation_history` |
 | Promoter Intelligence | `promoter_background` |
-| Report Generation | `generate_report` |
+| Report Generation | `generate_report`, **`generate_institutional_report`** |
 | PDF & Export | `generate_markdown`, `generate_pdf` |
 | Ops | `health_check` (also surfaces the full tool capability registry) |
 
@@ -149,6 +149,39 @@ npm run typecheck
 `litigation_history` (hard signal: SEBI/NCLT orders + legal-journalism case
 coverage) are deliberately split — they answer different due-diligence
 questions and shouldn't be conflated into one keyword screen.
+
+### `generate_institutional_report` — the composite orchestrator
+
+Every tool above also has its core logic exported as a plain function
+(`getCompanyProfile`, `getFinancialStatements`, etc., alongside each
+`registerXTool`), so `core/orchestration/institutionalReport.ts` can call
+them directly, in-process — no re-entering the MCP protocol per phase. A
+single `generate_institutional_report` call runs company profile,
+financials, industry, server-ranked competitors, funding, and a combined
+litigation/promoter/negative-news risk screen in parallel
+(`Promise.allSettled`, one phase failing doesn't sink the rest), composes
+the results into `ResearchSection`s with deterministic templated text (no
+LLM tokens spent server-side), and renders whichever of
+json/markdown/html/pdf the caller asked for. The calling model gets a
+finished report instead of having to plan and narrate ~10 separate tool
+calls itself.
+
+Two quality mechanisms run underneath every company-subject tool
+(including this composite one):
+
+- **Entity verification** (`core/quality/entityVerification.ts`) — a
+  result must contain the searched company's *distinctive* name tokens,
+  not just one word it happens to share with an unrelated company (fixes
+  the "Big Bang Boom" query pulling in "Nirmal Bang" or "BB Food").
+- **Evidence metadata** (`tools/shared/evidenceMetadata.ts`) — every
+  response's `metadata` includes `sourcesChecked` (human-readable labels),
+  `primarySources`/`secondarySources` counts, and how many raw hits were
+  dropped as false positives, so a clean screen reads as "checked SEBI,
+  NCLT, Indian Kanoon... — no matches" rather than going quiet.
+
+`financial_statements` also never returns bare `null`s: when data can't be
+found it returns `{ status: "not_available", reason, recommendedSources }`
+instead.
 
 Every tool returns the standard envelope:
 

@@ -13,6 +13,7 @@ import { negativeNewsMeta } from "./news/negativeNews.js";
 import { litigationHistoryMeta } from "./litigation/litigationHistory.js";
 import { promoterBackgroundMeta } from "./promoter/promoterBackground.js";
 import { generateReportMeta } from "./report/generateReport.js";
+import { generateInstitutionalReportMeta } from "./report/generateInstitutionalReport.js";
 import { generateMarkdownMeta } from "./export/generateMarkdown.js";
 import { generatePdfMeta } from "./export/generatePdf.js";
 import type { ToolMeta } from "../types/toolMeta.js";
@@ -38,6 +39,7 @@ export const TOOL_REGISTRY: ToolMeta[] = [
   litigationHistoryMeta,
   promoterBackgroundMeta,
   generateReportMeta,
+  generateInstitutionalReportMeta,
   generateMarkdownMeta,
   generatePdfMeta,
 ];

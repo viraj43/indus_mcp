@@ -36,6 +36,19 @@ export interface ExaSearchResultItem {
   score: number;
 }
 
+/** The shape a tool's core logic function returns, before it's wrapped
+ * into a ToolResponse envelope. Every research tool splits into a plain
+ * `get<Thing>(context)` function returning this, plus a thin
+ * `registerXTool` that wraps it for MCP — so composite/orchestrator tools
+ * (e.g. generate_institutional_report) can call the same logic directly,
+ * in-process, instead of re-entering the MCP protocol for each phase. */
+export interface ToolResult<T> {
+  data: T;
+  citations: Citation[];
+  confidence: number;
+  metadata: Record<string, unknown>;
+}
+
 /** Builds the envelope object (not JSON-stringified) — exported for the
  * rare tool that needs to embed it alongside other MCP content blocks
  * (e.g. generate_pdf attaching a binary resource block next to the JSON

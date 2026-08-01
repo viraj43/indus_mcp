@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { FastMCP } from "fastmcp";
 import { runSearchPipeline } from "../../core/pipeline/searchPipeline.js";
-import { ResearchContextInputSchema, withObjective } from "../../types/context.js";
-import { buildResponse, errorResponse } from "../../types/common.js";
+import { ResearchContextInputSchema, withObjective, type ResearchContextInput } from "../../types/context.js";
+import { buildResponse, errorResponse, type ToolResult } from "../../types/common.js";
+import { buildEvidenceMetadata } from "../shared/evidenceMetadata.js";
 import type { ToolMeta } from "../../types/toolMeta.js";
 
 const paramsSchema = z.object({
@@ -20,6 +21,35 @@ export const industryOverviewMeta: ToolMeta = {
   estimatedRuntimeMs: 2500,
 };
 
+export interface IndustryOverviewData {
+  industry: string;
+  summary: string;
+  sourceUrls: string[];
+}
+
+export async function getIndustryOverview(contextInput: ResearchContextInput): Promise<ToolResult<IndustryOverviewData>> {
+  const context = withObjective(contextInput, "industry");
+  const subject = context.country === "india" ? `${context.sector} in India` : context.sector!;
+  const { results, citations, confidence, evidence, domainsChecked } = await runSearchPipeline({
+    context,
+    templateKey: "overview",
+    subject,
+    numResults: 8,
+    cacheNamespace: "industry_overview",
+  });
+
+  return {
+    data: {
+      industry: context.sector!,
+      summary: results.slice(0, 4).map((r) => r.text.slice(0, 500)).join("\n\n"),
+      sourceUrls: results.map((r) => r.url),
+    },
+    citations,
+    confidence,
+    metadata: buildEvidenceMetadata({ evidence, domainsChecked }),
+  };
+}
+
 export function registerIndustryOverviewTool(server: FastMCP): void {
   server.addTool({
     name: "industry_overview",
@@ -29,27 +59,8 @@ export function registerIndustryOverviewTool(server: FastMCP): void {
     annotations: { title: "Industry Overview", readOnlyHint: true, openWorldHint: true },
     execute: async (args) => {
       try {
-        const context = withObjective(args.context, "industry");
-        const subject = context.country === "india" ? `${context.sector} in India` : context.sector!;
-        const { results, citations, confidence } = await runSearchPipeline({
-          context,
-          templateKey: "overview",
-          subject,
-          numResults: 8,
-          cacheNamespace: "industry_overview",
-        });
-
-        return buildResponse({
-          success: true,
-          data: {
-            industry: context.sector,
-            summary: results.slice(0, 4).map((r) => r.text.slice(0, 500)).join("\n\n"),
-            sourceUrls: results.map((r) => r.url),
-          },
-          citations,
-          confidence,
-          metadata: { resultCount: results.length },
-        });
+        const result = await getIndustryOverview(args.context);
+        return buildResponse({ success: true, ...result });
       } catch (err) {
         return errorResponse((err as Error).message);
       }

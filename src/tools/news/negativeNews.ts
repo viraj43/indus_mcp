@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { FastMCP } from "fastmcp";
 import { runSearchPipeline } from "../../core/pipeline/searchPipeline.js";
-import { ResearchContextInputSchema, withObjective } from "../../types/context.js";
-import { buildResponse, errorResponse } from "../../types/common.js";
+import { ResearchContextInputSchema, withObjective, type ResearchContextInput } from "../../types/context.js";
+import { buildResponse, errorResponse, type ToolResult } from "../../types/common.js";
+import { buildEvidenceMetadata } from "../shared/evidenceMetadata.js";
 import type { ToolMeta } from "../../types/toolMeta.js";
 
 const paramsSchema = z.object({
@@ -35,6 +36,56 @@ const NEGATIVE_KEYWORDS = [
   "controversy",
 ];
 
+export interface FlaggedArticle {
+  title: string;
+  url: string;
+  publishedDate: string | null;
+  matchedKeywords: string[];
+  snippet: string;
+}
+
+export interface NegativeNewsData {
+  companyName: string;
+  flaggedArticles: FlaggedArticle[];
+  screenClean: boolean;
+}
+
+export async function getNegativeNews(contextInput: ResearchContextInput): Promise<ToolResult<NegativeNewsData>> {
+  const context = withObjective(contextInput, "sentiment");
+  const { results, citations, confidence, evidence, domainsChecked, entityRejectedCount } = await runSearchPipeline({
+    context,
+    templateKey: "sentiment",
+    subject: context.company!,
+    numResults: 10,
+    cacheNamespace: "negative_news",
+    cacheTtlSeconds: 1800,
+    verifyEntity: context.company,
+  });
+
+  const flagged = results
+    .map((r) => {
+      const matchedKeywords = NEGATIVE_KEYWORDS.filter((kw) => new RegExp(`\\b${kw}\\b`, "i").test(r.text));
+      if (matchedKeywords.length === 0) return null;
+      return { title: r.title, url: r.url, publishedDate: r.publishedDate, matchedKeywords, snippet: r.text.slice(0, 300) };
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null);
+
+  return {
+    data: { companyName: context.company!, flaggedArticles: flagged, screenClean: flagged.length === 0 },
+    citations,
+    confidence,
+    metadata: buildEvidenceMetadata({
+      evidence,
+      domainsChecked,
+      entityRejectedCount,
+      extra: {
+        keywordsUsed: NEGATIVE_KEYWORDS,
+        note: "Keyword-based screen; a hit requires manual review to confirm relevance and materiality.",
+      },
+    }),
+  };
+}
+
 export function registerNegativeNewsTool(server: FastMCP): void {
   server.addTool({
     name: "negative_news",
@@ -44,40 +95,8 @@ export function registerNegativeNewsTool(server: FastMCP): void {
     annotations: { title: "Negative News Screen", readOnlyHint: true, openWorldHint: true },
     execute: async (args) => {
       try {
-        const context = withObjective(args.context, "sentiment");
-        const { results, citations, confidence } = await runSearchPipeline({
-          context,
-          templateKey: "sentiment",
-          subject: context.company!,
-          numResults: 10,
-          cacheNamespace: "negative_news",
-          cacheTtlSeconds: 1800,
-        });
-
-        const flagged = results
-          .map((r) => {
-            const matchedKeywords = NEGATIVE_KEYWORDS.filter((kw) => new RegExp(`\\b${kw}\\b`, "i").test(r.text));
-            if (matchedKeywords.length === 0) return null;
-            return {
-              title: r.title,
-              url: r.url,
-              publishedDate: r.publishedDate,
-              matchedKeywords,
-              snippet: r.text.slice(0, 300),
-            };
-          })
-          .filter((e): e is NonNullable<typeof e> => e !== null);
-
-        return buildResponse({
-          success: true,
-          data: { companyName: context.company, flaggedArticles: flagged, screenClean: flagged.length === 0 },
-          citations,
-          confidence,
-          metadata: {
-            keywordsUsed: NEGATIVE_KEYWORDS,
-            note: "Keyword-based screen; a hit requires manual review to confirm relevance and materiality.",
-          },
-        });
+        const result = await getNegativeNews(args.context);
+        return buildResponse({ success: true, ...result });
       } catch (err) {
         return errorResponse((err as Error).message);
       }

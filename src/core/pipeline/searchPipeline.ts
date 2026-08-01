@@ -1,11 +1,12 @@
 import { exaSearch } from "../exa/search.js";
 import { routeSources } from "../router/source-router.js";
 import { SOURCES, type SourceName } from "../../sources/index.js";
-import { buildCitations, dedupeCitations, aggregateConfidence } from "../citations/citationEngine.js";
+import { buildCitations, dedupeCitations, aggregateConfidence, summarizeEvidence, type EvidenceSummary } from "../citations/citationEngine.js";
 import { normalizeResultText } from "../normalization/normalizer.js";
 import { extractTables, type ExtractedTable } from "../extraction/htmlExtractor.js";
 import { extractPdfText } from "../extraction/pdfExtractor.js";
 import { fetchDocument } from "./fetchDocument.js";
+import { filterByEntity } from "../quality/entityVerification.js";
 import { cacheOrCompute, buildCacheKey } from "../../cache/cache.js";
 import { env } from "../../config/env.js";
 import type { Citation, ExaSearchResultItem } from "../../types/common.js";
@@ -55,12 +56,29 @@ export interface SearchPipelineOptions {
    * human-readable issue strings. Defaults to no validation. Issues are
    * surfaced in the result, never used to fail the pipeline outright. */
   validate?: (results: ExaSearchResultItem[]) => string[];
+  /** Entity-verification subject (usually context.company). When set,
+   * every result must plausibly mention this entity — by name, not just a
+   * shared generic word — or it's dropped before extraction/citation.
+   * This is what stops a query like "Big Bang Boom litigation" from
+   * pulling in an unrelated "Nirmal Bang" or "BB Food" hit. Omit this for
+   * searches whose whole point is finding *other* entities (competitor
+   * discovery, peer comparison) — there, a mismatch is the desired result,
+   * not a false positive. */
+  verifyEntity?: string;
 }
 
 export interface SearchPipelineResult {
   results: ExaSearchResultItem[];
   citations: Citation[];
   confidence: number;
+  evidence: EvidenceSummary;
+  /** The concrete domains this call was restricted to, present even when
+   * zero results came back — lets a tool report "checked mca.gov.in,
+   * sebi.gov.in, ... — no matches" instead of just going quiet. */
+  domainsChecked: string[];
+  /** How many raw results were dropped by entity verification (only
+   * meaningful when `verifyEntity` was supplied). */
+  entityRejectedCount: number;
   deepExtraction: DeepExtraction | null;
   validationIssues: string[];
 }
@@ -70,9 +88,11 @@ export interface SearchPipelineResult {
  *   Tool -> Router (context.objective -> sources -> domains)
  *        -> Exa (domain-restricted, cached search)
  *        -> Normalizer (text cleanup)
+ *        -> Entity Verification (optional: drop results not actually about
+ *           the searched subject)
  *        -> Extractor (optional: full-document HTML/PDF parsing)
  *        -> Validator (optional, tool-supplied)
- *        -> Citation Engine (Source Priority scoring, dedupe)
+ *        -> Citation Engine (Source Priority scoring, dedupe, evidence)
  *        -> Response
  *
  * No tool calls Exa directly — this function is the only caller of
@@ -97,7 +117,17 @@ export async function runSearchPipeline(options: SearchPipelineOptions): Promise
   );
 
   // Normalizer stage
-  const results = rawResults.map((r) => ({ ...r, text: normalizeResultText(r.text) }));
+  const normalized = rawResults.map((r) => ({ ...r, text: normalizeResultText(r.text) }));
+
+  // Entity Verification stage (opt-in — skipped for tools searching for
+  // *other* entities, e.g. competitor discovery)
+  let entityRejectedCount = 0;
+  let results = normalized;
+  if (options.verifyEntity) {
+    const filtered = filterByEntity(normalized, options.verifyEntity, (r) => `${r.title} ${r.text}`);
+    results = filtered.kept;
+    entityRejectedCount = filtered.rejected;
+  }
 
   // Extractor stage (opt-in deep extraction beyond Exa's snippet)
   let deepExtraction: DeepExtraction | null = null;
@@ -119,6 +149,16 @@ export async function runSearchPipeline(options: SearchPipelineOptions): Promise
   // Citation Engine stage
   const citations = dedupeCitations(buildCitations(results));
   const confidence = aggregateConfidence(citations);
+  const evidence = summarizeEvidence(citations);
 
-  return { results, citations, confidence, deepExtraction, validationIssues };
+  return {
+    results,
+    citations,
+    confidence,
+    evidence,
+    domainsChecked: includeDomains,
+    entityRejectedCount,
+    deepExtraction,
+    validationIssues,
+  };
 }

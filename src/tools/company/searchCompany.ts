@@ -3,6 +3,7 @@ import type { FastMCP } from "fastmcp";
 import { runSearchPipeline } from "../../core/pipeline/searchPipeline.js";
 import { ResearchContextInputSchema, withObjective } from "../../types/context.js";
 import { buildResponse, errorResponse } from "../../types/common.js";
+import { buildEvidenceMetadata } from "../shared/evidenceMetadata.js";
 import type { ToolMeta } from "../../types/toolMeta.js";
 
 const paramsSchema = z.object({
@@ -30,12 +31,13 @@ export function registerSearchCompanyTool(server: FastMCP): void {
     execute: async (args) => {
       try {
         const context = withObjective(args.context, "company_overview");
-        const { results, citations, confidence } = await runSearchPipeline({
+        const { results, citations, confidence, evidence, domainsChecked, entityRejectedCount } = await runSearchPipeline({
           context,
           templateKey: "discovery",
           subject: context.company!,
           numResults: 6,
           cacheNamespace: "search_company",
+          verifyEntity: context.company,
         });
 
         return buildResponse({
@@ -51,7 +53,7 @@ export function registerSearchCompanyTool(server: FastMCP): void {
           },
           citations,
           confidence,
-          metadata: { resultCount: results.length },
+          metadata: buildEvidenceMetadata({ evidence, domainsChecked, entityRejectedCount }),
         });
       } catch (err) {
         return errorResponse((err as Error).message);

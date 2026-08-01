@@ -14,6 +14,7 @@ import { registerNegativeNewsTool } from "./news/negativeNews.js";
 import { registerLitigationHistoryTool } from "./litigation/litigationHistory.js";
 import { registerPromoterBackgroundTool } from "./promoter/promoterBackground.js";
 import { registerGenerateReportTool } from "./report/generateReport.js";
+import { registerGenerateInstitutionalReportTool } from "./report/generateInstitutionalReport.js";
 import { registerGenerateMarkdownTool } from "./export/generateMarkdown.js";
 import { registerGeneratePdfTool } from "./export/generatePdf.js";
 import { registerHealthCheckTool } from "./health/healthCheck.js";
@@ -53,6 +54,7 @@ export function registerAllTools(server: FastMCP): void {
 
   // Report Generation
   registerGenerateReportTool(server);
+  registerGenerateInstitutionalReportTool(server);
 
   // PDF & Export
   registerGenerateMarkdownTool(server);

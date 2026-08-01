@@ -18,7 +18,7 @@ export type ResearchObjective =
  * allowlist by pulling each source profile's domains. */
 export const OBJECTIVE_SOURCES: Record<ResearchObjective, SourceName[]> = {
   company_overview: ["company", "mca"],
-  financials: ["exchange", "mca"],
+  financials: ["exchange", "mca", "financialData", "privateData"],
   funding: ["mca", "company", "privateData"],
   industry: ["industry"],
   macro: ["macro", "government"],

@@ -49,3 +49,27 @@ export function aggregateConfidence(citations: Citation[]): number {
 export function flattenSectionCitations(sectionCitations: Citation[][]): Citation[] {
   return dedupeCitations(sectionCitations.flat());
 }
+
+/** Tiers backed by a regulator/registry/filing record, rather than a
+ * third party reporting on or aggregating one. */
+const PRIMARY_TIERS = new Set(["official_filing", "government", "annual_report"]);
+
+export interface EvidenceSummary {
+  totalSources: number;
+  primarySources: number;
+  secondarySources: number;
+}
+
+/** Institutional due-diligence convention: report not just a confidence
+ * number but how many sources it rests on, split into primary (regulator/
+ * registry/filing) vs. secondary (news, industry analysis, aggregators) —
+ * "94% confidence from 8 sources, 5 primary" is checkable in a way a bare
+ * percentage isn't. */
+export function summarizeEvidence(citations: Citation[]): EvidenceSummary {
+  const primarySources = citations.filter((c) => PRIMARY_TIERS.has(c.tier)).length;
+  return {
+    totalSources: citations.length,
+    primarySources,
+    secondarySources: citations.length - primarySources,
+  };
+}

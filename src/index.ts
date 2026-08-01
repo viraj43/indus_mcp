@@ -38,7 +38,7 @@ async function main() {
     }
     await server.start({
       transportType: "httpStream",
-      httpStream: { port: env.MCP_HTTP_PORT, endpoint: "/mcp" },
+      httpStream: { port: env.MCP_HTTP_PORT, endpoint: "/mcp", host: "0.0.0.0" },
     });
     logger.info({ port: env.MCP_HTTP_PORT, oauthEnabled: Boolean(authProvider) }, "INDUSS MCP server listening (httpStream)");
   } else {

@@ -5,6 +5,12 @@ import { GOVERNMENT_PROFILE } from "./government/index.js";
 import { MACRO_PROFILE } from "./macro/index.js";
 import { NEWS_PROFILE } from "./news/index.js";
 import { INDUSTRY_PROFILE } from "./industry/index.js";
+import { EXCHANGE_PROFILE } from "./exchange/index.js";
+import { REGULATOR_PROFILE } from "./regulator/index.js";
+import { LEGAL_MEDIA_PROFILE } from "./legalMedia/index.js";
+import { FINANCIAL_DATA_PROFILE } from "./financialData/index.js";
+import { PRIVATE_DATA_PROFILE } from "./privateData/index.js";
+import { SOCIAL_SENTIMENT_PROFILE } from "./socialSentiment/index.js";
 import type { SourceProfile } from "./types.js";
 
 export type { SourceProfile, SourceTier, SearchTemplate } from "./types.js";
@@ -24,6 +30,12 @@ export const SOURCES = {
   macro: MACRO_PROFILE,
   news: NEWS_PROFILE,
   industry: INDUSTRY_PROFILE,
+  exchange: EXCHANGE_PROFILE,
+  regulator: REGULATOR_PROFILE,
+  legalMedia: LEGAL_MEDIA_PROFILE,
+  financialData: FINANCIAL_DATA_PROFILE,
+  privateData: PRIVATE_DATA_PROFILE,
+  socialSentiment: SOCIAL_SENTIMENT_PROFILE,
 } as const satisfies Record<string, SourceProfile>;
 
 export type SourceName = keyof typeof SOURCES;

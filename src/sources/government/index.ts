@@ -4,7 +4,7 @@ import type { SourceProfile } from "../types.js";
  * bodies. See sources/macro for hard macroeconomic data sources. */
 export const GOVERNMENT_PROFILE: SourceProfile = {
   name: "government",
-  domains: ["finmin.nic.in", "niti.gov.in"],
+  domains: ["finmin.gov.in", "niti.gov.in"],
   searchTemplates: {
     policy: (country) => `${country} government economic policy announcement`,
   },

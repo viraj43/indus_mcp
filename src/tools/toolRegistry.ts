@@ -5,10 +5,13 @@ import { financialStatementsMeta } from "./financial/financialStatements.js";
 import { ratioAnalysisMeta } from "./financial/ratioAnalysis.js";
 import { fundingHistoryMeta } from "./funding/fundingHistory.js";
 import { discoverCompetitorsMeta } from "./competitor/discoverCompetitors.js";
+import { listedPeerComparisonMeta } from "./competitor/listedPeerComparison.js";
 import { industryOverviewMeta } from "./industry/industryOverview.js";
 import { marketSizeMeta } from "./industry/marketSize.js";
 import { latestNewsMeta } from "./news/latestNews.js";
 import { negativeNewsMeta } from "./news/negativeNews.js";
+import { litigationHistoryMeta } from "./litigation/litigationHistory.js";
+import { promoterBackgroundMeta } from "./promoter/promoterBackground.js";
 import { generateReportMeta } from "./report/generateReport.js";
 import { generateMarkdownMeta } from "./export/generateMarkdown.js";
 import { generatePdfMeta } from "./export/generatePdf.js";
@@ -27,10 +30,13 @@ export const TOOL_REGISTRY: ToolMeta[] = [
   ratioAnalysisMeta,
   fundingHistoryMeta,
   discoverCompetitorsMeta,
+  listedPeerComparisonMeta,
   industryOverviewMeta,
   marketSizeMeta,
   latestNewsMeta,
   negativeNewsMeta,
+  litigationHistoryMeta,
+  promoterBackgroundMeta,
   generateReportMeta,
   generateMarkdownMeta,
   generatePdfMeta,

@@ -7,6 +7,7 @@ export type ResearchObjective =
   | "industry"
   | "macro"
   | "news"
+  | "sentiment"
   | "litigation"
   | "promoters"
   | "competitors";
@@ -17,14 +18,20 @@ export type ResearchObjective =
  * allowlist by pulling each source profile's domains. */
 export const OBJECTIVE_SOURCES: Record<ResearchObjective, SourceName[]> = {
   company_overview: ["company", "mca"],
-  financials: ["mca"],
-  funding: ["mca", "company"],
+  financials: ["exchange", "mca"],
+  funding: ["mca", "company", "privateData"],
   industry: ["industry"],
   macro: ["macro", "government"],
   news: ["news"],
-  litigation: ["mca", "news"],
-  promoters: ["mca", "company"],
-  competitors: ["industry", "news"],
+  /** Soft adverse-signal screen: press + employee/public sentiment.
+   * Deliberately excludes regulator/legalMedia — see "litigation" for
+   * hard regulatory/court records. */
+  sentiment: ["news", "socialSentiment"],
+  /** Hard regulatory/legal record screen (SEBI, NCLT, court judgments) —
+   * distinct from "sentiment"'s soft adverse-media signal. */
+  litigation: ["regulator", "legalMedia", "mca"],
+  promoters: ["regulator", "mca", "company"],
+  competitors: ["industry", "news", "financialData"],
 };
 
 export function resolveSources(objective: ResearchObjective): SourceName[] {

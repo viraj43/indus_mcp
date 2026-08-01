@@ -17,7 +17,7 @@ export const financialStatementsMeta: ToolMeta = {
   description: "Locates a company's annual report / financial filing and extracts structured line-item tables.",
   inputs: ["context.company", "context.listed"],
   outputs: ["lineItems", "periods", "extractionMethod"],
-  requiredSources: ["mca"],
+  requiredSources: ["exchange", "mca"],
   caching: true,
   estimatedRuntimeMs: 4000,
 };
@@ -41,9 +41,13 @@ export function registerFinancialStatementsTool(server: FastMCP): void {
     execute: async (args) => {
       try {
         const context = withObjective(args.context, "financials");
+        // Listed companies' primary-source filings live on NSE/BSE (the
+        // "listedFilings" template on the exchange profile); everyone else
+        // falls back to the MCA-registry-style "filings" query.
+        const templateKey = context.listed === "listed" ? "listedFilings" : "filings";
         const { results, citations, confidence, deepExtraction } = await runSearchPipeline({
           context,
-          templateKey: "filings",
+          templateKey,
           subject: context.company!,
           numResults: 5,
           cacheNamespace: "financial_statements",

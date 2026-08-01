@@ -7,6 +7,8 @@ export type ToolCategory =
   | "competitor"
   | "industry"
   | "news"
+  | "litigation"
+  | "promoter"
   | "report"
   | "export"
   | "ops";

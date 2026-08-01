@@ -6,10 +6,13 @@ import { registerFinancialStatementsTool } from "./financial/financialStatements
 import { registerRatioAnalysisTool } from "./financial/ratioAnalysis.js";
 import { registerFundingHistoryTool } from "./funding/fundingHistory.js";
 import { registerDiscoverCompetitorsTool } from "./competitor/discoverCompetitors.js";
+import { registerListedPeerComparisonTool } from "./competitor/listedPeerComparison.js";
 import { registerIndustryOverviewTool } from "./industry/industryOverview.js";
 import { registerMarketSizeTool } from "./industry/marketSize.js";
 import { registerLatestNewsTool } from "./news/latestNews.js";
 import { registerNegativeNewsTool } from "./news/negativeNews.js";
+import { registerLitigationHistoryTool } from "./litigation/litigationHistory.js";
+import { registerPromoterBackgroundTool } from "./promoter/promoterBackground.js";
 import { registerGenerateReportTool } from "./report/generateReport.js";
 import { registerGenerateMarkdownTool } from "./export/generateMarkdown.js";
 import { registerGeneratePdfTool } from "./export/generatePdf.js";
@@ -32,6 +35,7 @@ export function registerAllTools(server: FastMCP): void {
 
   // Competitor Intelligence
   registerDiscoverCompetitorsTool(server);
+  registerListedPeerComparisonTool(server);
 
   // Industry Intelligence
   registerIndustryOverviewTool(server);
@@ -40,6 +44,12 @@ export function registerAllTools(server: FastMCP): void {
   // News Intelligence
   registerLatestNewsTool(server);
   registerNegativeNewsTool(server);
+
+  // Litigation & Compliance
+  registerLitigationHistoryTool(server);
+
+  // Promoter Intelligence
+  registerPromoterBackgroundTool(server);
 
   // Report Generation
   registerGenerateReportTool(server);

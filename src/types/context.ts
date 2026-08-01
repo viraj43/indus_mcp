@@ -8,6 +8,7 @@ const RESEARCH_OBJECTIVES = [
   "industry",
   "macro",
   "news",
+  "sentiment",
   "litigation",
   "promoters",
   "competitors",

@@ -5,7 +5,7 @@ export const NEWS_PROFILE: SourceProfile = {
   domains: ["reuters.com", "economictimes.indiatimes.com", "livemint.com", "business-standard.com", "moneycontrol.com"],
   searchTemplates: {
     latest: (company) => `${company} news`,
-    negative: (company) =>
+    sentiment: (company) =>
       `${company} fraud OR lawsuit OR investigation OR scam OR default OR penalty OR layoffs`,
     competitors: (company) => `${company} competitors rivals market comparison`,
     litigation: (company) => `${company} lawsuit court case litigation`,

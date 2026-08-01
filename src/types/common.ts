@@ -36,7 +36,13 @@ export interface ExaSearchResultItem {
   score: number;
 }
 
-function makeEnvelope<T>(params: {
+/** Builds the envelope object (not JSON-stringified) — exported for the
+ * rare tool that needs to embed it alongside other MCP content blocks
+ * (e.g. generate_pdf attaching a binary resource block next to the JSON
+ * envelope). Most tools should use buildResponse()/errorResponse() below
+ * instead, which return the JSON string FastMCP's execute return type
+ * requires. */
+export function makeEnvelope<T>(params: {
   success: boolean;
   data: T | null;
   citations?: Citation[];

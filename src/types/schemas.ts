@@ -74,10 +74,18 @@ export const CitationSchema = z.object({
  * core/renderers/). */
 export const ResearchSectionSchema = z.object({
   title: z.string(),
+  /** Supports a light markdown subset when rendered to HTML/PDF: **bold**,
+   * *italic*, "- " bullet lists, and "> " blockquotes (e.g. for flagging a
+   * data-integrity caveat inline). Plain text renders fine too. */
   summary: z.string(),
   tables: z.array(ReportTableSchema).default([]),
   citations: z.array(CitationSchema).default([]),
   confidence: z.number(),
+  /** Freeform, but the HTML/PDF renderer recognizes two optional
+   * conventions: metadata.tone ("info"|"success"|"warning"|"danger") wraps
+   * the section in a colored callout card, and metadata.label puts a short
+   * chip caption at its top (e.g. "SCREENING RESULT"). Both are optional —
+   * omit them for a plain section. */
   metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -86,6 +94,15 @@ export const ReportInputSchema = z.object({
   subtitle: z.string().optional(),
   companyName: z.string().optional(),
   generatedAt: z.string().optional(),
+  /** Cover-page presentation fields — all optional, renderers fall back to
+   * sensible defaults when omitted. Kept optional (not zod `.default()`)
+   * so the inferred type stays backward-compatible for callers that don't
+   * set them. */
+  preparedBy: z.string().optional().describe("Shown on the cover page, e.g. 'INDUSS Research Intelligence Agent'"),
+  classification: z.string().optional().describe("Cover-page eyebrow label, e.g. 'CONFIDENTIAL RESEARCH REPORT'"),
+  tags: z.array(z.string()).optional().describe("Cover-page badge pills, e.g. ['Unlisted', 'Credit Assessment']"),
+  brandName: z.string().optional().describe("Report letterhead name; defaults to the server's own branding"),
+  brandTagline: z.string().optional().describe("Report letterhead tagline"),
   sections: z.array(ResearchSectionSchema).min(1),
 });
 

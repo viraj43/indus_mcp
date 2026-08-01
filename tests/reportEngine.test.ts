@@ -55,12 +55,14 @@ describe("toMarkdown", () => {
 });
 
 describe("toHtml", () => {
-  it("escapes content and renders a data table with confidence badges", () => {
+  it("renders the cover page, TOC, a data table, and per-section confidence", () => {
     const html = toHtml(sampleReport);
-    expect(html).toContain("<h1>Acme Corp — Company Profile</h1>");
-    expect(html).toContain("<table class=\"data-table\">");
+    expect(html).toContain('<h1 class="cover-title">Acme Corp — Company Profile</h1>');
+    expect(html).toContain('<table class="data-table">');
     expect(html).toContain("Acme Corp is a diversified industrial company.");
-    expect(html).toContain("confidence: 0.9");
+    expect(html).toContain("confidence 0.9");
+    expect(html).toContain('<h1 class="toc-heading">Table of Contents</h1>');
+    expect(html).toContain('<span class="toc-title">Overview</span>');
   });
 
   it("escapes unsafe characters in section summary", () => {
@@ -71,6 +73,44 @@ describe("toHtml", () => {
     const html = toHtml(withUnsafe);
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("wraps a section in a colored callout when metadata.tone is set", () => {
+    const withTone: ReportInput = {
+      ...sampleReport,
+      sections: [
+        {
+          title: "Risk Flags",
+          summary: "Open charges exceed revenue.",
+          tables: [],
+          citations: [],
+          confidence: 0.7,
+          metadata: { tone: "danger", label: "Risk Assessment" },
+        },
+      ],
+    };
+    const html = toHtml(withTone);
+    expect(html).toContain('<div class="callout callout-danger">');
+    expect(html).toContain("Risk Assessment");
+  });
+
+  it("renders markdown bullet lists and bold text in section summaries", () => {
+    const withMarkdown: ReportInput = {
+      ...sampleReport,
+      sections: [
+        {
+          title: "Highlights",
+          summary: "**Revenue:** grew fast.\n- Point one\n- Point two",
+          tables: [],
+          citations: [],
+          confidence: 0.8,
+          metadata: {},
+        },
+      ],
+    };
+    const html = toHtml(withMarkdown);
+    expect(html).toContain("<strong>Revenue:</strong>");
+    expect(html).toContain("<ul><li>Point one</li><li>Point two</li></ul>");
   });
 });
 

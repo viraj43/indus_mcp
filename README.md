@@ -61,8 +61,9 @@ Claude / ChatGPT / Cursor
  │ src/core/pdf/pdfEngine.ts                           │  PDF Generator (Playwright, HTML → PDF)
  │                                                     │
  │ src/sources/{mca,sec,company,government,macro,     │  Each source is fully self-contained: domains,
- │   news,industry}/index.ts                          │  query templates per research angle, trust
- │                                                     │  tier, baseline authority score
+ │   news,industry,exchange,regulator,legalMedia,     │  query templates per research angle, trust
+ │   financialData,privateData,socialSentiment}/      │  tier, baseline authority score
+ │   index.ts                                         │
  └──────────────────────────────────────────────────┘
         │
  Public Data Sources (Exa, domain-restricted per src/sources/*)
@@ -77,7 +78,21 @@ Normalizer → optional deep Extractor → optional Validator → Citation Engin
 **Report flow:** tool assembles `ResearchSection[]` (each carrying its own
 summary, tables, citations, and confidence) into a `ReportInput` →
 `core/reports/reportEngine.ts` → `core/renderers/{markdown,html}/reportRenderer.ts`
-→ (for PDF) `core/pdf/pdfEngine.ts` (Playwright).
+→ (for PDF) `core/pdf/pdfEngine.ts` (Playwright). The HTML renderer produces
+a full cover page + table of contents + numbered sections; a section's
+`metadata.tone` (`info`/`success`/`warning`/`danger`) and `metadata.label`
+wrap it in a colored callout card, and `summary` supports a light markdown
+subset (`**bold**`, `- bullets`, `> blockquotes`) — see
+`ReportInputSchema`/`ResearchSectionSchema` in `src/types/schemas.ts`.
+
+**PDF delivery:** `generate_pdf` returns the rendered PDF as a base64 MCP
+resource content block embedded directly in the tool response — this is
+what makes it retrievable by a *remote* client (e.g. Claude.ai talking to a
+Railway deployment), since a server-local file path is meaningless off-box.
+It's also written to `reports/` locally and, when `MCP_BASE_URL` is set
+(httpStream/production), served over `GET /reports/:filename` (registered
+via `server.getApp()`), so the response additionally includes a
+`downloadUrl`.
 
 ## Setup
 
@@ -114,19 +129,26 @@ npm test          # vitest — financial engine, citation engine, source priorit
 npm run typecheck
 ```
 
-## Tools implemented in this slice
+## Tools implemented in this slice (18)
 
 | Category | Tools |
 |---|---|
 | Company Intelligence | `search_company`, `company_profile`, `company_overview` |
 | Financial Intelligence | `financial_statements`, `ratio_analysis` |
 | Funding Intelligence | `funding_history` |
-| Competitor Intelligence | `discover_competitors` |
+| Competitor Intelligence | `discover_competitors`, `listed_peer_comparison` |
 | Industry Intelligence | `industry_overview`, `market_size` |
 | News Intelligence | `latest_news`, `negative_news` |
+| Litigation & Compliance | `litigation_history` |
+| Promoter Intelligence | `promoter_background` |
 | Report Generation | `generate_report` |
 | PDF & Export | `generate_markdown`, `generate_pdf` |
 | Ops | `health_check` (also surfaces the full tool capability registry) |
+
+`negative_news` (soft signal: press + Glassdoor/Reddit sentiment) and
+`litigation_history` (hard signal: SEBI/NCLT orders + legal-journalism case
+coverage) are deliberately split — they answer different due-diligence
+questions and shouldn't be conflated into one keyword screen.
 
 Every tool returns the standard envelope:
 

@@ -12,29 +12,42 @@ const paramsSchema = z.object({
 export const negativeNewsMeta: ToolMeta = {
   name: "negative_news",
   category: "news",
-  description: "Adverse media screen (fraud, litigation, regulatory action, layoffs, defaults) for due diligence.",
+  description: "Adverse media + employee/public sentiment screen (fraud, layoffs, complaints, controversy) for due diligence.",
   inputs: ["context.company"],
   outputs: ["flaggedArticles[]", "screenClean"],
-  requiredSources: ["news"],
+  requiredSources: ["news", "socialSentiment"],
   caching: true,
   estimatedRuntimeMs: 2000,
 };
 
-const NEGATIVE_KEYWORDS = ["fraud", "lawsuit", "investigation", "scam", "default", "penalty", "layoffs", "scandal", "probe", "ban"];
+const NEGATIVE_KEYWORDS = [
+  "fraud",
+  "lawsuit",
+  "investigation",
+  "scam",
+  "default",
+  "penalty",
+  "layoffs",
+  "scandal",
+  "probe",
+  "ban",
+  "complaint",
+  "controversy",
+];
 
 export function registerNegativeNewsTool(server: FastMCP): void {
   server.addTool({
     name: "negative_news",
     description:
-      "Screens news sources for adverse media on a company (fraud, litigation, regulatory action, layoffs, defaults) for due-diligence / risk-screening purposes.",
+      "Screens news and public-sentiment sources (Glassdoor, Reddit) for adverse media and complaints about a company (fraud, layoffs, defaults, employee/public controversy) for due-diligence / risk-screening purposes. For hard regulatory/legal records (SEBI, NCLT, court cases), use litigation_history instead.",
     parameters: paramsSchema,
     annotations: { title: "Negative News Screen", readOnlyHint: true, openWorldHint: true },
     execute: async (args) => {
       try {
-        const context = withObjective(args.context, "news");
+        const context = withObjective(args.context, "sentiment");
         const { results, citations, confidence } = await runSearchPipeline({
           context,
-          templateKey: "negative",
+          templateKey: "sentiment",
           subject: context.company!,
           numResults: 10,
           cacheNamespace: "negative_news",

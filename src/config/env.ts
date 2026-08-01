@@ -5,7 +5,10 @@ const EnvSchema = z.object({
   EXA_API_KEY: z.string().min(1, "EXA_API_KEY is required"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   MCP_TRANSPORT: z.enum(["stdio", "httpStream"]).default("stdio"),
-  MCP_HTTP_PORT: z.coerce.number().int().positive().default(8080),
+  MCP_HTTP_PORT: z.preprocess(
+    (val) => val ?? process.env.PORT,
+    z.coerce.number().int().positive().default(8080)
+  ),
   REDIS_URL: z.string().default("redis://localhost:6379"),
   DATABASE_URL: z.string().optional(),
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(3600),

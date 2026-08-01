@@ -11,9 +11,14 @@ const EnvSchema = z.object({
   CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
   EXA_MAX_CONCURRENCY: z.coerce.number().int().positive().default(5),
   EXA_REQUESTS_PER_MINUTE: z.coerce.number().int().positive().default(60),
-  /** Optional bearer token — when set, all httpStream requests must supply
-   *  Authorization: Bearer <token>. Leave unset for local stdio dev. */
-  MCP_AUTH_TOKEN: z.string().optional(),
+  /** OAuth 2.1 (GitHub) — only required for the httpStream transport in
+   *  production (e.g. Railway). Left unset, the server runs with no auth,
+   *  which is expected for local stdio dev via Claude Desktop/Cursor. */
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  OAUTH_ENCRYPTION_KEY: z.string().optional(),
+  OAUTH_JWT_SIGNING_KEY: z.string().optional(),
+  MCP_BASE_URL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

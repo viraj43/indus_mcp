@@ -4,7 +4,10 @@ import { z } from "zod";
 const EnvSchema = z.object({
   EXA_API_KEY: z.string().min(1, "EXA_API_KEY is required"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
-  MCP_TRANSPORT: z.enum(["stdio", "httpStream"]).default("stdio"),
+  MCP_TRANSPORT: z.preprocess(
+    (val) => (typeof val === "string" ? (val.toLowerCase() === "httpstream" ? "httpStream" : val) : val),
+    z.enum(["stdio", "httpStream"]).default("stdio")
+  ),
   MCP_HTTP_PORT: z.preprocess(
     (val) => val ?? process.env.PORT,
     z.coerce.number().int().positive().default(8080)

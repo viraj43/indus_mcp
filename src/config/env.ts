@@ -9,7 +9,7 @@ const EnvSchema = z.object({
     z.enum(["stdio", "httpStream"]).default("stdio")
   ),
   MCP_HTTP_PORT: z.preprocess(
-    (val) => val ?? process.env.PORT,
+    (val) => process.env.PORT ?? val,
     z.coerce.number().int().positive().default(8080)
   ),
   REDIS_URL: z.string().default("redis://localhost:6379"),
